@@ -66,6 +66,7 @@ class WinWizardSettingsPanel(gsd.SettingsPanel):
 		# Translators: Label of a checkbox which can be used to enable or disable sounds.
 		self.enableBeepsChk = sHelper.addItem(wx.CheckBox(self, label=_("&Confirm actions with sounds")))
 		self.enableBeepsChk.SetValue(config.conf["winWizard"]["playConfirmationBeeps"])
+		# Translators: Label of a checkbox to enable legacy window switching behavior.
 		self.useOldCycleChk = sHelper.addItem(
 			wx.CheckBox(self, label=_("Use old window cycling behavior"))
 		)
@@ -638,6 +639,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		fg = api.getForegroundObject()
 		parent = getattr(fg, "parent", None)
 		if not parent:
+			# Translators: Reported when informations for the current window cannot be retrieved.
 			ui.message(_("Can't retrieve window information for this object."))
 			return
 		appModule = parent.appModule
@@ -648,6 +650,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self._cycleWindows = None
 			self._cycleApp = appModule
 		if appModule.appName == "explorer":
+			# Translators: Information given when user tries to move to top-level window in Windows  Explorer.
 			ui.message(_("Not supported here."))
 			return
 		# Build window list
@@ -660,6 +663,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				windows.append(current)
 			current = current.simpleNext
 		if len(windows) <= 1:
+			# Translators: Announced when the current application has no top-level windows.
 			ui.message(_("This window has no top level windows to cycle to."))
 			return
 		# Initialize index if needed
@@ -673,7 +677,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		# Store selection
 		self._cycleWindows = windows
 		self._cycleSelection = windows[self._cycleIndex]
-		# Announce
+		# Translators: Announces the currently selected window when cycling.
+		# {name} is the window title, {index} is current position, {total} is total windows.
 		ui.message(_("{name} ({index} of {total})").format(
 			name=self._cycleSelection.name or _("Unknown window"),
 			index=self._cycleIndex + 1,
@@ -687,17 +692,19 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		gesture="kb:NVDA+windows+`",
 	)
 	def script_confirmCycleWindow(self, gesture):
-		# Disable in old mode
 		if config.conf["winWizard"]["useOldCycle"]:
+			# Translators: Reported when confirm command is used while old mode is enabled.
 			ui.message(_("This command is disabled in old mode."))
 			return
 		selection = getattr(self, "_cycleSelection", None)
 		if not selection:
+			# Translators: Reported when no window is currently selected in the cycle.
 			ui.message(_("No window selected."))
 			return
 		fg = api.getForegroundObject()
 		parent = getattr(fg, "parent", None)
 		if not parent:
+			# Translators: Reported when no window is currently selected in the cycle.
 			ui.message(_("No window selected."))
 			return
 		# App mismatch check
@@ -710,12 +717,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			not hasattr(selection, "windowHandle")
 			or not winUser.isWindow(selection.windowHandle)
 		):
+			# Translators: Reported when the selected window is no longer available.
 			ui.message(_("Window no longer available."))
 			return
 		try:
 			selection.setFocus()
 			playTonesIfEnabled(180, 50)
 		except Exception:
+			# Translators: Reported when focusing the selected window fails.
 			ui.message(_("Failed to focus window."))
 		self._resetCycleState()
 	# Helper
@@ -724,8 +733,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._cycleWindows = None
 		self._cycleIndex = None
 		self._cycleApp = None
-
-
 
 	@scriptHandler.script(
 		# Translators: Description of the keyboard command that kills currently focused process.
