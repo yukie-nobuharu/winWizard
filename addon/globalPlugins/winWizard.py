@@ -70,7 +70,7 @@ class WinWizardSettingsPanel(gsd.SettingsPanel):
 		self.useOldCycleChk = sHelper.addItem(
 			wx.CheckBox(self, label=_("Use old window cycling behavior"))
 		)
-		self.useOldCycleChk.SetValue(config.conf["winWizard"]["useOldCycle"])
+		self.useOldCycleChk.SetValue(config.conf["winWizard"]["useOldCycleBehavior"])
 
 
 	def postInit(self):
@@ -78,7 +78,7 @@ class WinWizardSettingsPanel(gsd.SettingsPanel):
 
 	def onSave(self):
 		config.conf["winWizard"]["playConfirmationBeeps"] = self.enableBeepsChk.GetValue()
-		config.conf["winWizard"]["useOldCycle"] = self.useOldCycleChk.GetValue()
+		config.conf["winWizard"]["useOldCycleBehavior"] = self.useOldCycleChk.GetValue()
 
 
 class Win32FunctionError(Exception):
@@ -579,11 +579,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		super().__init__()
 		confSpec = {
 			"playConfirmationBeeps": "boolean(default=True)",
-			"useOldCycle": "boolean(default=False)"
+			"useOldCycleBehavior": "boolean(default=False)"
 		}
 		config.conf.spec["winWizard"] = confSpec
 		self.hiddenWindowsList: hiddenWindowsList = hiddenWindowsList()
 		gsd.NVDASettingsDialog.categoryClasses.append(WinWizardSettingsPanel)
+		# Initialize cycle state
+		self._cycleIndex = None
+		self._cycleSelection = None
+		self._cycleWindows = None
+		self._cycleApp = None
 
 	def terminate(self):
 		super().terminate()
@@ -591,19 +596,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		del self.hiddenWindowsList
 		gsd.NVDASettingsDialog.categoryClasses.remove(WinWizardSettingsPanel)
 
-
-
-
-
 	@scriptHandler.script(
 		description=_(
+			# Translators: Description of the keyboard command
 			"Cycles through top-level windows of the current application."
 		),
 		gesture="kb:NVDA+windows+Tab",
 	)
-
 	def script_cycleWindows(self, gesture):
-		if config.conf["winWizard"]["useOldCycle"]:
+		if config.conf["winWizard"]["useOldCycleBehavior"]:
 			if(
 				api.getForegroundObject()
 				and api.getForegroundObject().parent
@@ -637,22 +638,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 
 		fg = api.getForegroundObject()
-		parent = getattr(fg, "parent", None)
+		parent = fg.parent if hasattr(fg, "parent") else None
 		if not parent:
 			# Translators: Reported when informations for the current window cannot be retrieved.
 			ui.message(_("Can't retrieve window information for this object."))
 			return
 		appModule = parent.appModule
-		# Reset cycle state if app changed
-		if getattr(self, "_cycleApp", None) != appModule:
-			self._cycleIndex = None
-			self._cycleSelection = None
-			self._cycleWindows = None
-			self._cycleApp = appModule
 		if appModule.appName == "explorer":
 			# Translators: Information given when user tries to move to top-level window in Windows  Explorer.
 			ui.message(_("Not supported here."))
 			return
+		# Reset cycle state if app changed
+		if self._cycleApp != appModule:
+			self._resetCycleState()
+			self._cycleApp = appModule
 		# Build window list
 		windows = []
 		current = parent
@@ -667,7 +666,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.message(_("This window has no top level windows to cycle to."))
 			return
 		# Initialize index if needed
-		if getattr(self, "_cycleIndex", None) is None:
+		if self._cycleIndex is None:
 			try:
 				self._cycleIndex = windows.index(parent)
 			except ValueError:
@@ -678,7 +677,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._cycleWindows = windows
 		self._cycleSelection = windows[self._cycleIndex]
 		# Translators: Announces the currently selected window when cycling.
-		# {name} is the window title, {index} is current position, {total} is total windows.
+		# {name} is the window title or Unknown window if the window has no title, {index} is current position, {total} is total windows.
 		ui.message(_("{name} ({index} of {total})").format(
 			name=self._cycleSelection.name or _("Unknown window"),
 			index=self._cycleIndex + 1,
@@ -692,23 +691,23 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		gesture="kb:NVDA+windows+`",
 	)
 	def script_confirmCycleWindow(self, gesture):
-		if config.conf["winWizard"]["useOldCycle"]:
+		if config.conf["winWizard"]["useOldCycleBehavior"]:
 			# Translators: Reported when confirm command is used while old mode is enabled.
 			ui.message(_("This command is disabled in old mode."))
 			return
-		selection = getattr(self, "_cycleSelection", None)
+		selection = self._cycleSelection
 		if not selection:
 			# Translators: Reported when no window is currently selected in the cycle.
 			ui.message(_("No window selected."))
 			return
 		fg = api.getForegroundObject()
-		parent = getattr(fg, "parent", None)
+		parent = fg.parent if hasattr(fg, "parent") else None
 		if not parent:
 			# Translators: Reported when no window is currently selected in the cycle.
 			ui.message(_("No window selected."))
 			return
 		# App mismatch check
-		if getattr(self, "_cycleApp", None) != parent.appModule:
+		if self._cycleApp != parent.appModule:
 			ui.message(_("No window selected."))
 			self._resetCycleState()
 			return
@@ -722,10 +721,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 		try:
 			selection.setFocus()
-			playTonesIfEnabled(180, 50)
-		except Exception:
+		except Exception as e:
+			log.exception("Failed to focus window: %s", e)
 			# Translators: Reported when focusing the selected window fails.
 			ui.message(_("Failed to focus window."))
+		else:
+			playTonesIfEnabled(180, 50)
 		self._resetCycleState()
 	# Helper
 	def _resetCycleState(self):

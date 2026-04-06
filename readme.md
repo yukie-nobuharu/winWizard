@@ -29,12 +29,13 @@ All these commands can be remapped from the Input gestures dialog in the Win Wiz
 
 * NVDA+Windows+TAB - switches between top level windows of the current program (useful in foobar2000, Back4Sure etc.)
 * NVDA+Windows+` - confirms and switches to the selected window in the cycle  
-  * In the new behavior, this command is used to activate the selected window    * The old behavior can still be enabled in settings
+  * In the new behavior, this command is used to activate the selected window
+  * The old behavior can still be enabled in settings
 * CTRL+ALT+T - allows you to change title of the currently focused program
 
 ## Changes:
 
-### Changes for 5.1.0:
+### Changes for 5.0.8:
 
 * Added a new window cycling system with improved selection and confirmation behavior
 * Added option to switch between the new window cycling system and the legacy behavior
@@ -67,4 +68,3 @@ All these commands can be remapped from the Input gestures dialog in the Win Wiz
 ### Changes for 5.0.2:
 
 * First release available from the add-ons website
-
