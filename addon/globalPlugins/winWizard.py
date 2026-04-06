@@ -719,6 +719,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			# Translators: Reported when the selected window is no longer available.
 			ui.message(_("Window no longer available."))
 			return
+		# Check if the selected window is already focused
+		try:
+			focusHandle = winUser.getForegroundWindow()
+			if selection.windowHandle == focusHandle:
+				# Translators: Reported when the selected window is already focused.
+				ui.message(_("Already focused"))
+				self._resetCycleState()
+				return
+		except Exception as e:
+			log.exception("Failed to check foreground window: %s", e)
 		try:
 			selection.setFocus()
 		except Exception as e:
