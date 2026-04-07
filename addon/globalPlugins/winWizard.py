@@ -599,6 +599,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	@scriptHandler.script(
 		description=_(
 			# Translators: Description of the keyboard command
+			# allowing to jump between top-level windows of the current application.
 			"Cycles through top-level windows of the current application."
 		),
 		gesture="kb:NVDA+windows+Tab",
@@ -677,7 +678,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._cycleWindows = windows
 		self._cycleSelection = windows[self._cycleIndex]
 		# Translators: Announces the currently selected window when cycling.
-		# {name} is the window title or Unknown window if the window has no title, {index} is current position, {total} is total windows.
+		# Translators: {name} is the window title, {index} is current position, {total} is total windows.
+		# Translators: Reported for a window with no name when cycling between top level windows.
 		ui.message(_("{name} ({index} of {total})").format(
 			name=self._cycleSelection.name or _("Unknown window"),
 			index=self._cycleIndex + 1,
