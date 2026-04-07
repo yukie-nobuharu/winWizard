@@ -678,9 +678,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._cycleWindows = windows
 		self._cycleSelection = windows[self._cycleIndex]
 		# Translators: Announces the currently selected window when cycling.
-		# Translators: {name} is the window title, {index} is current position, {total} is total windows.
-		# Translators: Reported for a window with no name when cycling between top level windows.
+		# {name} is the window title, {index} is current position, {total} is total windows.
 		ui.message(_("{name} ({index} of {total})").format(
+			# Translators: Reported for a window with no name when cycling between top level windows.
 			name=self._cycleSelection.name or _("Unknown window"),
 			index=self._cycleIndex + 1,
 			total=len(windows)
@@ -688,6 +688,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	@scriptHandler.script(
 		description=_(
+			# Translators: Command description for focusing selected window.
 			"Focuses the currently selected window from the cycle."
 		),
 		gesture="kb:NVDA+windows+`",
